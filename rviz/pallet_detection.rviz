@@ -1,0 +1,89 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Views
+    Name: Views
+
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Name: Grid
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: world
+      
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
+      Enabled: true
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Size (Pixels): 3
+      Size (m): 0.01
+      Style: Points
+      Topic: /depth_camera/depth/points
+      
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /depth_camera/color/image_raw
+      Name: RGB Image
+      
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /depth_camera/depth/image_raw
+      Name: Depth Image
+      
+    - Class: rviz/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: world
+    Frame Rate: 30
+    
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 5.0
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.06
+        Stereo Focal Distance: 1.0
+        Swap Stereo Eyes: false
+        Value: false
+      Focal Point:
+        X: 1.0
+        Y: 0.0
+        Z: 0.0
+      Focal Shape Size: 0.05
+      Name: Current View
+      Near Clip Distance: 0.01
+      Pitch: 0.5
+      Target Frame: world
+      Yaw: 3.14
+      
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 800
+  Hide Left Dock: false
+  Hide Right Dock: false
+  RGB Image:
+    collapsed: false
+  Depth Image:
+    collapsed: false
+  Width: 1200

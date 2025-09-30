@@ -1,0 +1,42 @@
+<launch>
+  
+  <!-- 設定模型路徑 -->
+  <!-- <env name="GAZEBO_MODEL_PATH" 
+       value="$(find pallet_detection)/models:$(optenv GAZEBO_MODEL_PATH)" /> -->
+  
+  <!-- 啟動 Gazebo 世界 -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find pallet_detection)/worlds/pallet_world.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+  
+  <!-- Spawn 深度相機 -->
+  <!-- 位置: x=0, y=-1.5, z=2.0 (在棧板前方上方) -->
+  <!-- 姿態: 相機向下傾斜 90 度看地面 -->
+  <param name="depth_camera_description" 
+         command="$(find xacro)/xacro $(find pallet_detection)/urdf/depth_camera.urdf"/>
+  
+  <node name="spawn_depth_camera" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf 
+              -param depth_camera_description 
+              -model depth_camera
+              -x 0 
+              -y 0.0
+              -z 2.0
+              -Y 0" 
+        output="screen"/>
+  
+  <!-- 啟動 RViz 視覺化 -->
+  <node name="rviz" pkg="rviz" type="rviz" 
+        args="-d $(find pallet_detection)/rviz/pallet_detection.rviz" 
+        required="false"/>
+  
+  <!-- 發布靜態 TF (world -> camera_base) -->
+  <node pkg="tf" type="static_transform_publisher" name="world_to_camera"
+        args="0 -1.5 2.0 0 0 0 world camera_base 100"/>
+
+</launch>

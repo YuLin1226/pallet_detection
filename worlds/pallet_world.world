@@ -1,0 +1,167 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="pallet_test">
+    
+    <!-- ========== 基本環境設定 ========== -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    
+    <!-- 設定相機視角 -->
+    <gui>
+      <camera name="user_camera">
+        <pose>3 -3 2.5 0 0.4 2.356</pose>
+      </camera>
+    </gui>
+    
+    
+    <!-- ========== 測試場景 ========== -->
+    <!-- 取消註解你要測試的場景 -->
+    
+    
+    <!-- Case 1: 正常擺放 - 0度 -->
+    <!-- 位置: (1, 0, 0), 角度: 0度 -->
+    
+    <!-- <include>
+      <uri>model://pallet</uri>
+      <name>pallet_case1</name>
+      <pose>1 0 0 0 0 0</pose>
+    </include> -->
+    
+    
+    
+    <!-- Case 2: 正常擺放 - 45度 -->
+    <!-- 位置: (1, 0, 0), 角度: 45度 (0.785398 rad) -->
+    <!--
+    <include>
+      <uri>model://pallet</uri>
+      <name>pallet_case2</name>
+      <pose>1 0 0 0 0 0.785398</pose>
+    </include>
+    -->
+    
+    
+    <!-- Case 3: 正常擺放 - 90度 -->
+    <!-- 位置: (1, 0, 0), 角度: 90度 (1.5708 rad) -->
+    <!--
+    <include>
+      <uri>model://pallet</uri>
+      <name>pallet_case3</name>
+      <pose>1 0 0 0 0 1.5708</pose>
+    </include>
+    -->
+    
+    
+    <!-- Case 4: 上面有箱子 - 0度 -->
+    <!-- 棧板位置: (1, 0, 0), 角度: 0度 -->
+    <!-- 箱子位置: 棧板上方 0.5m -->
+    
+    <include>
+      <uri>model://pallet</uri>
+      <name>pallet_case4</name>
+      <pose>1 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://cardboard_box</uri>
+      <name>box_case4</name>
+      <pose>1 0 0.5 0 0 0</pose>
+    </include>
+   
+    
+    
+    <!-- Case 5: 上面有箱子 - 45度 -->
+    <!-- 棧板位置: (1, 0, 0), 角度: 45度 -->
+    <!-- 箱子位置: 棧板上方 0.5m，同樣旋轉 45度 -->
+    <!--
+    <include>
+      <uri>model://pallet</uri>
+      <name>pallet_case5</name>
+      <pose>1 0 0 0 0 0.785398</pose>
+    </include>
+    
+    <include>
+      <uri>model://cardboard_box</uri>
+      <name>box_case5</name>
+      <pose>1 0 0.5 0 0 0.785398</pose>
+    </include>
+    -->
+    
+    
+    <!-- Case 6: 上面有箱子 - 90度 -->
+    <!-- 棧板位置: (1, 0, 0), 角度: 90度 -->
+    <!-- 箱子位置: 棧板上方 0.5m，同樣旋轉 90度 -->
+    <!--
+    <include>
+      <uri>model://pallet</uri>
+      <name>pallet_case6</name>
+      <pose>1 0 0 0 0 1.5708</pose>
+    </include>
+    
+    <include>
+      <uri>model://cardboard_box</uri>
+      <name>box_case6</name>
+      <pose>1 0 0.5 0 0 1.5708</pose>
+    </include>
+    -->
+    
+    
+    <!-- Case 7: 底下有箱子 - 0度 -->
+    <!-- 箱子位置: (1, 0, 0.5)，在地面上 -->
+    <!-- 棧板位置: 箱子上方，高度約 1.0m -->
+    <!--
+    <include>
+      <uri>model://cardboard_box</uri>
+      <name>box_case7</name>
+      <pose>1 0 0.5 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://pallet</uri>
+      <name>pallet_case7</name>
+      <pose>1 0 1.0 0 0 0</pose>
+    </include>
+    -->
+    
+    
+    <!-- Case 8: 底下有箱子 - 45度 -->
+    <!-- 箱子位置: (1, 0, 0.5)，旋轉 45度 -->
+    <!-- 棧板位置: 箱子上方，同樣旋轉 45度 -->
+    <!--
+    <include>
+      <uri>model://cardboard_box</uri>
+      <name>box_case8</name>
+      <pose>1 0 0.5 0 0 0.785398</pose>
+    </include>
+    
+    <include>
+      <uri>model://pallet</uri>
+      <name>pallet_case8</name>
+      <pose>1 0 1.0 0 0 0.785398</pose>
+    </include>
+    -->
+    
+    
+    <!-- Case 9: 底下有箱子 - 90度 -->
+    <!-- 箱子位置: (1, 0, 0.5)，旋轉 90度 -->
+    <!-- 棧板位置: 箱子上方，同樣旋轉 90度 -->
+    <!--
+    <include>
+      <uri>model://cardboard_box</uri>
+      <name>box_case9</name>
+      <pose>1 0 0.5 0 0 1.5708</pose>
+    </include>
+    
+    <include>
+      <uri>model://pallet</uri>
+      <name>pallet_case9</name>
+      <pose>1 0 1.0 0 0 1.5708</pose>
+    </include>
+    -->
+    
+  </world>
+</sdf>
