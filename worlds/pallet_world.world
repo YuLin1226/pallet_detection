@@ -63,13 +63,13 @@
     <include>
       <uri>model://pallet</uri>
       <name>pallet_case4</name>
-      <pose>1 0 0 0 0 0</pose>
+      <pose>2 0 0 0 0 0</pose>
     </include>
     
     <include>
       <uri>model://cardboard_box</uri>
       <name>box_case4</name>
-      <pose>1 0 0.5 0 0 0</pose>
+      <pose>2 0 0.5 0 0 0</pose>
     </include>
    
     
