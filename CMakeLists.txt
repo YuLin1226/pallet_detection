@@ -63,12 +63,21 @@ target_link_libraries(ground_removal_node
   ${PCL_LIBRARIES}
   ${VTK_LIBRARIES}
 )
+## 地面移除節點
+add_executable(ground_removal_with_box_node 
+  src/ground_removal_with_box_node.cpp
+)
+target_link_libraries(ground_removal_with_box_node
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ${VTK_LIBRARIES}
+)
 
 #############
 ## Install ##
 #############
 
 ## 安裝執行檔
-install(TARGETS vfh_node ground_removal_node
+install(TARGETS vfh_node ground_removal_node ground_removal_with_box_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
