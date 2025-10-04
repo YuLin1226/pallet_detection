@@ -8,6 +8,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/transforms.h>
 #include <boost/thread/thread.hpp>
 #include <sstream>
 #include <iomanip>
@@ -44,6 +45,7 @@ public:
         ROS_INFO("Ground Removal Node initialized");
         ROS_INFO("Distance threshold: %.4f", distance_threshold_);
         ROS_INFO("Max iterations: %d", max_iterations_);
+        ROS_INFO("X-axis 180 degree rotation: ENABLED");
         ROS_INFO("Waiting for point cloud data...");
     }
     
@@ -60,18 +62,38 @@ public:
         
         ROS_INFO("Original cloud size: %zu points", cloud->size());
         
+        // 對 X 軸做 180 度旋轉
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_rotated(new pcl::PointCloud<pcl::PointXYZ>);
+        rotateAroundX(cloud, cloud_rotated, 180.0);
+        
+        ROS_INFO("Applied 180 degree rotation around X-axis");
+        
         // 執行地面分割
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_no_ground = removeGround(cloud);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_no_ground = removeGround(cloud_rotated);
         
         ROS_INFO("After ground removal: %zu points", cloud_no_ground->size());
-        ROS_INFO("Removed: %zu points", cloud->size() - cloud_no_ground->size());
+        ROS_INFO("Removed: %zu points", cloud_rotated->size() - cloud_no_ground->size());
         
         // 視覺化結果
-        visualizeResult(cloud, cloud_no_ground);
+        visualizeResult(cloud_rotated, cloud_no_ground);
         
         processed_ = true;
         ROS_INFO("Processing complete. Visualization is running.");
         ROS_INFO("Close the visualization window to exit.");
+    }
+    
+    void rotateAroundX(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud_in,
+                       pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud_out,
+                       double angle_degrees) {
+        // 將角度轉換為弧度
+        double angle_rad = angle_degrees * M_PI / 180.0;
+        
+        // 建立旋轉矩陣（繞 X 軸旋轉）
+        Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+        transform.rotate(Eigen::AngleAxisf(angle_rad, Eigen::Vector3f::UnitZ()));
+        
+        // 執行轉換
+        pcl::transformPointCloud(*cloud_in, *cloud_out, transform);
     }
     
     pcl::PointCloud<pcl::PointXYZ>::Ptr removeGround(

@@ -55,7 +55,7 @@
   <joint name="camera_joint" type="fixed">
     <parent link="camera_base"/>
     <child link="camera_link"/>
-    <origin xyz="0 0 0" rpy="3.14159 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
 
   <!-- 相機光學中心 frame -->
@@ -65,7 +65,7 @@
     <parent link="camera_link"/>
     <child link="camera_depth_frame"/>
     <!-- 相機向下傾斜看地面，pitch = 1.57 (90度向下) -->
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 3.1415926"/>
   </joint>
 
   <!-- Gazebo 相機感測器插件 -->

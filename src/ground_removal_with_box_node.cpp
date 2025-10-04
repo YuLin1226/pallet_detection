@@ -9,6 +9,7 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/transforms.h>
 #include <boost/thread/thread.hpp>
 #include <sstream>
 #include <iomanip>
@@ -27,17 +28,14 @@ private:
     int max_iterations_;
     
     // 棧板參數 (根據你的 SDF)
-    const double PALLET_LENGTH = 1.22;  // x方向
-    const double PALLET_WIDTH = 0.8;    // y方向
-    const double PALLET_HEIGHT = 0.145; // z方向
-    const double PALLET_X = 2.0;        // 中心點 x 座標
-    const double PALLET_Y = 0.0;        // 中心點 y 座標
+    const double PALLET_LENGTH = 1.22;  // 對應 z 方向
+    const double PALLET_WIDTH = 0.8;    // 對應 x 方向
+    const double PALLET_HEIGHT = 0.145; // 對應 y 方向
     
-    // 相機位置 (根據你的 URDF，相機在 (0,0,2)，向下看)
-    const double CAMERA_HEIGHT = 2.0;
-    
-    // 棧板在相機座標系中的 z 座標
-    double pallet_z_in_camera_;
+    // 棧板中心位置（在旋轉後的座標系中）
+    double pallet_center_x_;  // 對應寬度方向
+    double pallet_center_y_;  // 對應高度方向
+    double pallet_center_z_;  // 對應長度方向
     
     // 選擇顯示模式
     bool filter_mode_;  // true: 只顯示方框內的點雲, false: 顯示所有點雲+方框
@@ -49,10 +47,11 @@ public:
         nh_.param("max_iterations", max_iterations_, 1000);
         nh_.param("filter_mode", filter_mode_, false);
         
-        // 計算棧板在相機座標系中的 z 座標
-        // 相機在 z=2.0 向下看，棧板中心高度是 PALLET_HEIGHT/2
-        // 在相機座標系中，z 軸向前（因為相機倒置），實際是向下
-        pallet_z_in_camera_ = CAMERA_HEIGHT - PALLET_HEIGHT / 2.0;
+        // 設定棧板中心位置（需要根據實際旋轉後的座標系調整）
+        // 假設棧板在旋轉後座標系的中心位置
+        nh_.param("pallet_center_x", pallet_center_x_, 0.0);
+        nh_.param("pallet_center_y", pallet_center_y_, 0.05);
+        nh_.param("pallet_center_z", pallet_center_z_, 2.0);
         
         // 訂閱點雲主題
         cloud_sub_ = nh_.subscribe("/depth_camera/depth/points", 1, 
@@ -68,9 +67,10 @@ public:
         ROS_INFO("Distance threshold: %.4f", distance_threshold_);
         ROS_INFO("Max iterations: %d", max_iterations_);
         ROS_INFO("Filter mode: %s", filter_mode_ ? "Only show points inside box" : "Show all points with box");
-        ROS_INFO("Pallet dimensions: %.2f x %.2f x %.2f m", PALLET_LENGTH, PALLET_WIDTH, PALLET_HEIGHT);
-        ROS_INFO("Pallet center position: (%.2f, %.2f, %.4f) in camera frame", 
-                 PALLET_X, PALLET_Y, pallet_z_in_camera_);
+        ROS_INFO("Pallet dimensions: Length(z)=%.2fm, Width(x)=%.2fm, Height(y)=%.2fm", 
+                 PALLET_LENGTH, PALLET_WIDTH, PALLET_HEIGHT);
+        ROS_INFO("Pallet center position: (x=%.2f, y=%.2f, z=%.2f)", 
+                 pallet_center_x_, pallet_center_y_, pallet_center_z_);
         ROS_INFO("Waiting for point cloud data...");
     }
     
@@ -87,11 +87,17 @@ public:
         
         ROS_INFO("Original cloud size: %zu points", cloud->size());
         
+        // 對 X 軸做 180 度旋轉（與第一份程式碼相同）
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_rotated(new pcl::PointCloud<pcl::PointXYZ>);
+        rotateAroundX(cloud, cloud_rotated, 180.0);
+        
+        ROS_INFO("Applied 180 degree rotation around X-axis");
+        
         // 執行地面分割
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_no_ground = removeGround(cloud);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_no_ground = removeGround(cloud_rotated);
         
         ROS_INFO("After ground removal: %zu points", cloud_no_ground->size());
-        ROS_INFO("Removed: %zu points", cloud->size() - cloud_no_ground->size());
+        ROS_INFO("Removed: %zu points", cloud_rotated->size() - cloud_no_ground->size());
         
         // 根據模式選擇要顯示的點雲
         pcl::PointCloud<pcl::PointXYZ>::Ptr display_cloud;
@@ -103,11 +109,25 @@ public:
         }
         
         // 視覺化結果
-        visualizeResult(cloud, display_cloud);
+        visualizeResult(cloud_rotated, display_cloud);
         
         processed_ = true;
         ROS_INFO("Processing complete. Visualization is running.");
         ROS_INFO("Close the visualization window to exit.");
+    }
+    
+    void rotateAroundX(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud_in,
+                       pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud_out,
+                       double angle_degrees) {
+        // 將角度轉換為弧度
+        double angle_rad = angle_degrees * M_PI / 180.0;
+        
+        // 建立旋轉矩陣（繞 Z 軸旋轉）
+        Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+        transform.rotate(Eigen::AngleAxisf(angle_rad, Eigen::Vector3f::UnitZ()));
+        
+        // 執行轉換
+        pcl::transformPointCloud(*cloud_in, *cloud_out, transform);
     }
     
     pcl::PointCloud<pcl::PointXYZ>::Ptr removeGround(
@@ -152,18 +172,19 @@ public:
         pcl::CropBox<pcl::PointXYZ> crop_box;
         crop_box.setInputCloud(cloud);
         
-        // 定義棧板邊界框 (在相機座標系中)
+        // 定義棧板邊界框（在旋轉後的座標系中）
+        // x 對應寬度，y 對應高度，z 對應長度
         Eigen::Vector4f min_point(
-            PALLET_X - PALLET_LENGTH / 2.0,
-            PALLET_Y - PALLET_WIDTH / 2.0,
-            pallet_z_in_camera_ - PALLET_HEIGHT / 2.0,
+            pallet_center_x_ - PALLET_WIDTH / 2.0,   // x 方向：寬度
+            pallet_center_y_ - PALLET_HEIGHT / 2.0,  // y 方向：高度
+            pallet_center_z_ - PALLET_LENGTH / 2.0,  // z 方向：長度
             1.0
         );
         
         Eigen::Vector4f max_point(
-            PALLET_X + PALLET_LENGTH / 2.0,
-            PALLET_Y + PALLET_WIDTH / 2.0,
-            pallet_z_in_camera_ + PALLET_HEIGHT / 2.0,
+            pallet_center_x_ + PALLET_WIDTH / 2.0,   // x 方向：寬度
+            pallet_center_y_ + PALLET_HEIGHT / 2.0,  // y 方向：高度
+            pallet_center_z_ + PALLET_LENGTH / 2.0,  // z 方向：長度
             1.0
         );
         
@@ -178,13 +199,19 @@ public:
     
     void drawPalletBox() {
         // 計算棧板的8個頂點
-        double x_min = PALLET_X - PALLET_LENGTH / 2.0;
-        double x_max = PALLET_X + PALLET_LENGTH / 2.0;
-        double y_min = PALLET_Y - PALLET_WIDTH / 2.0;
-        double y_max = PALLET_Y + PALLET_WIDTH / 2.0;
-        double z_min = pallet_z_in_camera_ - PALLET_HEIGHT / 2.0;
-        double z_max = pallet_z_in_camera_ + PALLET_HEIGHT / 2.0;
+        // x 對應寬度方向
+        double x_min = pallet_center_x_ - PALLET_WIDTH / 2.0;
+        double x_max = pallet_center_x_ + PALLET_WIDTH / 2.0;
         
+        // y 對應高度方向
+        double y_min = pallet_center_y_ - PALLET_HEIGHT / 2.0;
+        double y_max = pallet_center_y_ + PALLET_HEIGHT / 2.0;
+        
+        // z 對應長度方向
+        double z_min = pallet_center_z_ - PALLET_LENGTH / 2.0;
+        double z_max = pallet_center_z_ + PALLET_LENGTH / 2.0;
+        
+        // 定義8個頂點
         pcl::PointXYZ p1(x_min, y_min, z_min);
         pcl::PointXYZ p2(x_max, y_min, z_min);
         pcl::PointXYZ p3(x_max, y_max, z_min);
@@ -194,19 +221,19 @@ public:
         pcl::PointXYZ p7(x_max, y_max, z_max);
         pcl::PointXYZ p8(x_min, y_max, z_max);
         
-        // 繪製底面的4條邊
+        // 繪製底面的4條邊 (z = z_min)
         viewer_->addLine(p1, p2, 0.0, 1.0, 0.0, "line1");
         viewer_->addLine(p2, p3, 0.0, 1.0, 0.0, "line2");
         viewer_->addLine(p3, p4, 0.0, 1.0, 0.0, "line3");
         viewer_->addLine(p4, p1, 0.0, 1.0, 0.0, "line4");
         
-        // 繪製頂面的4條邊
+        // 繪製頂面的4條邊 (z = z_max)
         viewer_->addLine(p5, p6, 0.0, 1.0, 0.0, "line5");
         viewer_->addLine(p6, p7, 0.0, 1.0, 0.0, "line6");
         viewer_->addLine(p7, p8, 0.0, 1.0, 0.0, "line7");
         viewer_->addLine(p8, p5, 0.0, 1.0, 0.0, "line8");
         
-        // 繪製連接底面和頂面的4條邊
+        // 繪製連接底面和頂面的4條邊 (沿 z 方向)
         viewer_->addLine(p1, p5, 0.0, 1.0, 0.0, "line9");
         viewer_->addLine(p2, p6, 0.0, 1.0, 0.0, "line10");
         viewer_->addLine(p3, p7, 0.0, 1.0, 0.0, "line11");
@@ -220,6 +247,8 @@ public:
         }
         
         ROS_INFO("Pallet bounding box drawn (green lines)");
+        ROS_INFO("Box range - X: [%.3f, %.3f], Y: [%.3f, %.3f], Z: [%.3f, %.3f]",
+                 x_min, x_max, y_min, y_max, z_min, z_max);
     }
     
     void visualizeResult(const pcl::PointCloud<pcl::PointXYZ>::Ptr& original,
@@ -253,9 +282,10 @@ public:
         
         // 添加棧板資訊
         std::stringstream ss2;
-        ss2 << "Pallet: " << PALLET_LENGTH << "m x " << PALLET_WIDTH << "m x " 
-            << PALLET_HEIGHT << "m at (" << PALLET_X << ", " << PALLET_Y << ", " 
-            << std::fixed << std::setprecision(3) << pallet_z_in_camera_ << ")";
+        ss2 << "Pallet: Width(x)=" << PALLET_WIDTH << "m, Height(y)=" << PALLET_HEIGHT 
+            << "m, Length(z)=" << PALLET_LENGTH << "m at (" 
+            << pallet_center_x_ << ", " << pallet_center_y_ << ", " 
+            << std::fixed << std::setprecision(3) << pallet_center_z_ << ")";
         viewer_->addText(ss2.str(), 10, 30, 14, 0.0, 1.0, 0.0, "pallet_info");
         
         ROS_INFO("Visualization initialized");
