@@ -10,9 +10,11 @@
 #include <pcl/filters/crop_box.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/transforms.h>
+#include <pcl/io/pcd_io.h>
 #include <boost/thread/thread.hpp>
 #include <sstream>
 #include <iomanip>
+#include <fstream>
 
 class GroundRemovalNode {
 private:
@@ -40,6 +42,10 @@ private:
     // 選擇顯示模式
     bool filter_mode_;  // true: 只顯示方框內的點雲, false: 顯示所有點雲+方框
     
+    // 儲存相關參數
+    std::string output_filename_;
+    bool auto_save_;
+    
 public:
     GroundRemovalNode() : processed_(false) {
         // 讀取參數
@@ -48,10 +54,13 @@ public:
         nh_.param("filter_mode", filter_mode_, false);
         
         // 設定棧板中心位置（需要根據實際旋轉後的座標系調整）
-        // 假設棧板在旋轉後座標系的中心位置
         nh_.param("pallet_center_x", pallet_center_x_, 0.0);
         nh_.param("pallet_center_y", pallet_center_y_, 0.05);
         nh_.param("pallet_center_z", pallet_center_z_, 2.0);
+        
+        // 儲存參數
+        nh_.param<std::string>("output_filename", output_filename_, "pallet_scan");
+        nh_.param("auto_save", auto_save_, true);
         
         // 訂閱點雲主題
         cloud_sub_ = nh_.subscribe("/depth_camera/depth/points", 1, 
@@ -71,6 +80,13 @@ public:
                  PALLET_LENGTH, PALLET_WIDTH, PALLET_HEIGHT);
         ROS_INFO("Pallet center position: (x=%.2f, y=%.2f, z=%.2f)", 
                  pallet_center_x_, pallet_center_y_, pallet_center_z_);
+        
+        if (auto_save_) {
+            ROS_INFO("Auto-save enabled: %s.pcd", output_filename_.c_str());
+        } else {
+            ROS_INFO("Auto-save disabled");
+        }
+        
         ROS_INFO("Waiting for point cloud data...");
     }
     
@@ -99,13 +115,18 @@ public:
         ROS_INFO("After ground removal: %zu points", cloud_no_ground->size());
         ROS_INFO("Removed: %zu points", cloud_rotated->size() - cloud_no_ground->size());
         
-        // 根據模式選擇要顯示的點雲
+        // 根據模式選擇要顯示和儲存的點雲
         pcl::PointCloud<pcl::PointXYZ>::Ptr display_cloud;
         if (filter_mode_) {
             display_cloud = filterPointsInBox(cloud_no_ground);
             ROS_INFO("Points inside pallet box: %zu", display_cloud->size());
         } else {
             display_cloud = cloud_no_ground;
+        }
+        
+        // 自動儲存點雲
+        if (auto_save_) {
+            savePointCloud(display_cloud);
         }
         
         // 視覺化結果
@@ -195,6 +216,78 @@ public:
         crop_box.filter(*cloud_filtered);
         
         return cloud_filtered;
+    }
+    
+    void savePointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+        // 先過濾無效點
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+        
+        for (const auto& point : cloud->points) {
+            if (std::isfinite(point.x) && std::isfinite(point.y) && std::isfinite(point.z)) {
+                cloud_filtered->push_back(point);
+            }
+        }
+        
+        ROS_INFO("Filtered invalid points: %zu -> %zu (removed %zu invalid points)",
+                cloud->size(), cloud_filtered->size(), 
+                cloud->size() - cloud_filtered->size());
+        
+        // 檢查過濾後的點雲
+        if (cloud_filtered->size() == 0) {
+            ROS_ERROR("All points are invalid! Cannot save empty point cloud.");
+            return;
+        }
+        
+        if (cloud_filtered->size() < 100) {
+            ROS_WARN("Point cloud after filtering is very small: %zu points", 
+                    cloud_filtered->size());
+        }
+        
+        std::string filename = output_filename_ + ".pcd";
+        
+        // 使用二進位格式儲存（最快、最小檔案）
+        if (pcl::io::savePCDFileBinary(filename, *cloud_filtered) == 0) {
+            ROS_INFO("✓ Successfully saved %zu valid points to %s", 
+                    cloud_filtered->size(), filename.c_str());
+            
+            // 顯示檔案大小
+            std::ifstream file(filename, std::ios::binary | std::ios::ate);
+            if (file.is_open()) {
+                double size_mb = file.tellg() / (1024.0 * 1024.0);
+                ROS_INFO("  File size: %.2f MB", size_mb);
+                file.close();
+            }
+        } else {
+            ROS_ERROR("✗ Failed to save point cloud to %s", filename.c_str());
+        }
+    }
+
+    bool validatePointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+        bool is_valid = true;
+        
+        // 檢查點數量
+        if (cloud->size() == 0) {
+            ROS_WARN("Point cloud is empty!");
+            return false;
+        }
+        
+        // 檢查是否有 NaN 或 Inf
+        int invalid_count = 0;
+        for (const auto& point : cloud->points) {
+            if (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z)) {
+                invalid_count++;
+            }
+        }
+        
+        if (invalid_count > 0) {
+            double invalid_ratio = (double)invalid_count / cloud->size() * 100.0;
+            ROS_WARN("Found %d invalid points (%.1f%% of total)", invalid_count, invalid_ratio);
+            is_valid = false;
+        } else {
+            ROS_INFO("✓ All points are valid");
+        }
+        
+        return is_valid;
     }
     
     void drawPalletBox() {
@@ -287,6 +380,13 @@ public:
             << pallet_center_x_ << ", " << pallet_center_y_ << ", " 
             << std::fixed << std::setprecision(3) << pallet_center_z_ << ")";
         viewer_->addText(ss2.str(), 10, 30, 14, 0.0, 1.0, 0.0, "pallet_info");
+        
+        // 添加儲存狀態資訊
+        if (auto_save_) {
+            std::stringstream ss3;
+            ss3 << "Saved to: " << output_filename_ << ".pcd";
+            viewer_->addText(ss3.str(), 10, 50, 14, 1.0, 1.0, 0.0, "save_info");
+        }
         
         ROS_INFO("Visualization initialized");
     }

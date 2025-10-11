@@ -73,11 +73,29 @@ target_link_libraries(ground_removal_with_box_node
   ${VTK_LIBRARIES}
 )
 
+add_executable(viz_saved_point_clouds 
+  src/viz_saved_point_clouds.cpp
+)
+target_link_libraries(viz_saved_point_clouds
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ${VTK_LIBRARIES}
+)
+
+add_executable(merge_point_clouds 
+  src/merge_point_clouds.cpp
+)
+target_link_libraries(merge_point_clouds
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ${VTK_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
 
 ## 安裝執行檔
-install(TARGETS vfh_node ground_removal_node ground_removal_with_box_node
+install(TARGETS vfh_node ground_removal_node ground_removal_with_box_node viz_saved_point_clouds merge_point_clouds
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

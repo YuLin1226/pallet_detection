@@ -37,10 +37,10 @@
     </node>
         
 
-    <!-- 啟動 RViz 視覺化 -->
+    <!-- 啟動 RViz 視覺化
     <node name="rviz" pkg="rviz" type="rviz" 
             args="-d $(find pallet_detection)/rviz/pallet_detection.rviz" 
-            required="false"/>
+            required="false"/> -->
     
     <!-- 發布靜態 TF (world -> camera_base) -->
     <node pkg="tf" type="static_transform_publisher" name="world_to_camera"
