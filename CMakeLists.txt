@@ -91,11 +91,20 @@ target_link_libraries(merge_point_clouds
   ${VTK_LIBRARIES}
 )
 
+add_executable(icp_alignment 
+  src/icp_alignment.cpp
+)
+target_link_libraries(icp_alignment
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ${VTK_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
 
 ## 安裝執行檔
-install(TARGETS vfh_node ground_removal_node ground_removal_with_box_node viz_saved_point_clouds merge_point_clouds
+install(TARGETS vfh_node ground_removal_node ground_removal_with_box_node viz_saved_point_clouds merge_point_clouds icp_alignment
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
