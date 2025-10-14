@@ -100,11 +100,20 @@ target_link_libraries(icp_alignment
   ${VTK_LIBRARIES}
 )
 
+add_executable(point_cloud_add_noise 
+  src/point_cloud_add_noise.cpp
+)
+target_link_libraries(point_cloud_add_noise
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ${VTK_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
 
 ## 安裝執行檔
-install(TARGETS vfh_node ground_removal_node ground_removal_with_box_node viz_saved_point_clouds merge_point_clouds icp_alignment
+install(TARGETS vfh_node ground_removal_node ground_removal_with_box_node viz_saved_point_clouds merge_point_clouds icp_alignment point_cloud_add_noise
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
