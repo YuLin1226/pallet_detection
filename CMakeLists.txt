@@ -18,6 +18,9 @@ find_package(PCL 1.8 REQUIRED)
 ## 尋找 VTK (用於視覺化)
 find_package(VTK REQUIRED)
 
+## 尋找 Opencv
+find_package(OpenCV REQUIRED)
+
 ###################################
 ## catkin 專案設定 ##
 ###################################
@@ -38,6 +41,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${VTK_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## 連結 PCL 目錄
@@ -109,11 +113,21 @@ target_link_libraries(point_cloud_add_noise
   ${VTK_LIBRARIES}
 )
 
+add_executable(point_cloud_plane_to_2d_image 
+  src/point_cloud_plane_to_2d_image.cpp
+)
+target_link_libraries(point_cloud_plane_to_2d_image
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ${VTK_LIBRARIES}
+  ${OpenCV_LIBS}
+)
+
 #############
 ## Install ##
 #############
 
 ## 安裝執行檔
-install(TARGETS vfh_node ground_removal_node ground_removal_with_box_node viz_saved_point_clouds merge_point_clouds icp_alignment point_cloud_add_noise
+install(TARGETS vfh_node ground_removal_node ground_removal_with_box_node viz_saved_point_clouds merge_point_clouds icp_alignment point_cloud_add_noise point_cloud_plane_to_2d_image
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
