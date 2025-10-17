@@ -97,7 +97,7 @@ std::vector<RectangleCandidate> detectRectangles(const cv::Mat& density_image,
         double contour_area = cv::contourArea(contours[i]);
         
         // 面積過濾：至少 0.3%，最多 25%
-        if (contour_area < total_area * 0.003 || contour_area > total_area * 0.25) {
+        if (contour_area < total_area * 0.1 || contour_area > total_area * 0.55) {
             std::cout << "Contour #" << i << ": area=" << contour_area 
                       << " (" << (contour_area/total_area*100) << "%) - REJECTED (area out of range)" << std::endl;
             continue;
@@ -117,11 +117,11 @@ std::vector<RectangleCandidate> detectRectangles(const cv::Mat& density_image,
         bool is_valid = true;
         std::string reject_reason = "";
         
-        // 長寬比：1.2 ~ 5.0（放寬範圍）
-        if (aspect_ratio < 1.2 || aspect_ratio > 5.0) {
-            is_valid = false;
-            reject_reason = "aspect ratio out of range";
-        }
+        // // 長寬比：1.2 ~ 5.0（放寬範圍）
+        // if (aspect_ratio < 1.2 || aspect_ratio > 5.0) {
+        //     is_valid = false;
+        //     reject_reason = "aspect ratio out of range";
+        // }
         
         // 緊湊度：> 0.65（稍微放寬）
         if (rectangularity < 0.65) {
